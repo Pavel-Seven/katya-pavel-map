@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Katya App</title>
+    <link rel="icon" href="data:,">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Паша & Катя 💍">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💍</text></svg>">
+    <style>
+        :root {
+            --bg: #2a2b35;
+            --surface: rgba(38,40,54,0.95);
+            --border: rgba(255,255,255,0.08);
+            --text: rgba(255,255,255,0.92);
+            --muted: rgba(255,255,255,0.4);
+            --green: #4dbd7a;
+            --blue: #5b8af5;
+            --red: #f56b6b;
+            --amber: #f5a742;
+            --purple: #b07ef8;
+            --gold: #e8c84a;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, "SF Pro Display", BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            overscroll-behavior: none;
+        }
+
+        /* Screen Management */
+        .screen-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            padding-bottom: calc(83px + env(safe-area-inset-bottom));
+        }
+
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            display: none;
+            padding: env(safe-area-inset-top) 20px 20px 20px;
+            opacity: 0;
+        }
+
+        .screen.active {
+            display: block;
+            opacity: 1;
+            animation: fadeIn 0.2s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Typography */
+        h1, h2, h3, h4 { margin: 0; font-weight: 600; letter-spacing: -0.5px; }
+        .header { margin-top: 10px; margin-bottom: 24px; }
+        .header-title { font-size: 28px; line-height: 1.2; margin-bottom: 4px; }
+        .header-sub { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+        /* Cards */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: transform 0.15s cubic-bezier(.34,1.56,.64,1);
+        }
+        .card:active { transform: scale(0.97); }
+
+        /* Tab Bar */
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: calc(83px + env(safe-area-inset-bottom));
+            padding-bottom: env(safe-area-inset-bottom);
+            background: rgba(30,31,42,0.97);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-left: 12px;
+            padding-right: 12px;
+            z-index: 100;
+        }
+
+        .tab {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255,255,255,0.35);
+            font-size: 10px;
+            font-weight: 500;
+            cursor: pointer;
+            position: relative;
+            height: 100%;
+        }
+
+        .tab.active { color: var(--text); }
+        .tab.active .tab-indicator {
+            position: absolute;
+            top: 6px;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--text);
+        }
+        .tab-icon { font-size: 24px; margin-bottom: 4px; filter: grayscale(1) opacity(0.6); transition: all 0.2s; }
+        .tab.active .tab-icon { filter: grayscale(0) opacity(1); transform: scale(1.1); }
+
+        /* HERO SECTION */
+        .hero {
+            background: linear-gradient(135deg, rgba(91,138,245,0.15), rgba(77,189,122,0.1));
+            border-radius: 24px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 24px;
+            border: 1px solid var(--border);
+            animation: slideUpFade 0.6s cubic-bezier(.34,1.56,.64,1) forwards;
+            opacity: 0; transform: translateY(20px);
+        }
+        @keyframes slideUpFade { to { opacity: 1; transform: translateY(0); } }
+        .hero-emoji { font-size: 64px; margin-bottom: 16px; }
+        .hero-title { font-size: 28px; color: white; margin-bottom: 8px; }
+        .hero-sub { font-size: 14px; color: var(--muted); }
+
+        /* Home Cards */
+        .card-title { font-size: 18px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .card-text { font-size: 15px; color: rgba(255,255,255,0.8); line-height: 1.5; }
+        
+        .pill-scroll {
+            display: flex;
+            gap: 12px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .pill-scroll::-webkit-scrollbar { display: none; }
+        .pill {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px 16px;
+            border-radius: 20px;
+            white-space: nowrap;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .pill.active { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.3); }
+
+        .countdown-num { font-size: 48px; font-weight: 700; color: var(--green); letter-spacing: -1px; margin-bottom: 4px; }
+        .countdown-sub { font-size: 14px; color: var(--muted); margin-bottom: 16px; }
+        .progress-track { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--green); border-radius: 4px; }
+
+        .status-cols { display: flex; gap: 16px; }
+        .status-col { flex: 1; background: rgba(255,255,255,0.03); padding: 16px; border-radius: 16px; border: 1px solid var(--border); }
+        .status-name { font-weight: 600; margin-bottom: 8px; font-size: 15px; }
+        .status-list { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+        /* Scenario Selectors (USA) */
+        .scenario-card { margin-bottom: 16px; border-radius: 20px; border-width: 1px; border-style: solid; padding: 20px; position: relative; overflow: hidden; }
+        .scenario-opt { background: rgba(77,189,122,0.12); border-color: rgba(77,189,122,0.3); }
+        .scenario-real { background: rgba(245,167,66,0.12); border-color: rgba(245,167,66,0.3); }
+        .scenario-pess { background: rgba(245,107,107,0.12); border-color: rgba(245,107,107,0.3); }
+        
+        .scenario-title { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+        .scenario-sub { font-size: 14px; opacity: 0.8; }
+        
+        .prob-ring {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .prob-opt { border: 3px solid var(--green); color: var(--green); }
+        .prob-real { border: 3px solid var(--amber); color: var(--amber); }
+        .prob-pess { border: 3px solid var(--red); color: var(--red); }
+
+        .scenario-details { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; margin-top: 0; opacity: 0; }
+        .scenario-card.expanded .scenario-details { max-height: 500px; margin-top: 20px; opacity: 1; }
+
+        /* Small Timeline in Scenarios */
+        .step-item { display: flex; gap: 12px; margin-bottom: 16px; position: relative; }
+        .step-item::after { content: ''; position: absolute; left: 5px; top: 16px; bottom: -16px; width: 2px; background: rgba(255,255,255,0.1); z-index: 1; }
+        .step-item:last-child::after { display: none; }
+        .step-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--text); position: relative; z-index: 2; margin-top: 4px; }
+        .step-content { flex: 1; }
+        .step-date { font-size: 12px; font-weight: 600; margin-bottom: 2px; color: var(--text); }
+        .step-desc { font-size: 13px; color: rgba(255,255,255,0.7); }
+
+        .warning-card { border-color: rgba(245,107,107,0.4); background: rgba(245,107,107,0.05); }
+
+        /* Munich Vertical Timeline */
+        .m-timeline { position: relative; padding-left: 20px; margin-top: 30px; margin-bottom: 30px; }
+        .m-timeline::before { content: ''; position: absolute; left: 34px; top: 10px; bottom: 10px; width: 2px; background: rgba(255,255,255,0.1); }
+        .m-step { display: flex; gap: 16px; margin-bottom: 24px; opacity: 0; transform: translateY(20px); transition: all 0.5s ease; }
+        .m-step.visible { opacity: 1; transform: translateY(0); }
+        .m-circle {
+            width: 30px; height: 30px; border-radius: 50%; background: var(--surface);
+            border: 2px solid var(--border); display: flex; align-items: center; justify-content: center;
+            font-size: 14px; position: relative; z-index: 2;
+        }
+        .m-step.done .m-circle { border-color: var(--green); background: rgba(77,189,122,0.2); }
+        .m-step.soon .m-circle { border-color: var(--amber); background: rgba(245,167,66,0.2); }
+        .m-step.final .m-circle { border-color: var(--blue); background: rgba(91,138,245,0.2); box-shadow: 0 0 15px rgba(91,138,245,0.4); }
+        
+        .m-content { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; flex: 1; }
+        .m-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .m-title { font-weight: 600; font-size: 16px; }
+        .m-desc { font-size: 14px; color: var(--muted); line-height: 1.4; margin-bottom: 12px; }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .badge-done { background: rgba(77,189,122,0.2); color: var(--green); }
+        .badge-soon { background: rgba(245,167,66,0.2); color: var(--amber); animation: pulse 2s infinite; }
+        .badge-muted { background: rgba(255,255,255,0.1); color: var(--muted); }
+        .badge-final { background: rgba(91,138,245,0.2); color: var(--blue); }
+
+        @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+
+        /* Comparison Table */
+        .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+        th, td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+        th { font-weight: 600; color: var(--muted); font-size: 11px; text-transform: uppercase; }
+        tr:last-child td { border-bottom: none; }
+        td.hl { background: rgba(77,189,122,0.05); color: var(--green); font-weight: 500; }
+
+        /* Career Screen */
+        .progress-section { margin-bottom: 24px; }
+        .prog-bar { position: relative; height: 40px; display: flex; align-items: center; margin-top: 10px; }
+        .prog-line { position: absolute; left: 0; right: 0; height: 2px; background: rgba(255,255,255,0.1); }
+        .prog-points { position: relative; display: flex; justify-content: space-between; width: 100%; font-size: 11px; color: var(--muted); }
+        .prog-point { display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; }
+        .prog-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); z-index: 2; }
+        .prog-point.active .prog-dot { background: var(--purple); box-shadow: 0 0 10px var(--purple); }
+        .prog-point.active { color: var(--purple); font-weight: 600; }
+
+        .metrics-grid { display: flex; gap: 12px; margin-top: 12px; }
+        .metric-card { flex: 1; background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 16px; border-radius: 16px; text-align: center; }
+        .metric-val { font-size: 20px; font-weight: 700; color: var(--purple); margin-bottom: 4px; }
+        .metric-sub { font-size: 12px; color: var(--muted); }
+
+        .goal-timeline { display: flex; flex-direction: column; gap: 12px; }
+        .goal-item { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+        .goal-icon { font-size: 16px; }
+
+        /* Calculator */
+        .calc-row { margin-bottom: 16px; }
+        .calc-row label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; color: rgba(255,255,255,0.8); }
+        input[type=range] { width: 100%; accent-color: var(--red); }
+        .calc-out { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 8px; }
+        .calc-out strong { color: white; }
+        .calc-result { background: rgba(245,107,107,0.1); border: 1px solid rgba(245,107,107,0.3); padding: 16px; border-radius: 16px; margin-top: 20px; }
+        .calc-vs { margin-top: 12px; font-size: 12px; color: var(--green); font-weight: 600; text-align: center; }
+
+        /* Risks Accordion */
+        .accordion { margin-bottom: 12px; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); overflow: hidden; }
+        .acc-header { padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 600; cursor: pointer; }
+        .acc-icon { font-size: 20px; transition: transform 0.3s; }
+        .accordion.open .acc-icon { transform: rotate(180deg); }
+        .acc-content { max-height: 0; transition: max-height 0.4s ease; background: rgba(0,0,0,0.1); }
+        .accordion.open .acc-content { max-height: 400px; }
+        .acc-inner { padding: 16px 20px; font-size: 14px; line-height: 1.5; color: rgba(255,255,255,0.8); }
+        .acc-inner ul { padding-left: 20px; margin: 0; }
+        .acc-inner li { margin-bottom: 8px; }
+
+        .prob-bar-wrap { margin-bottom: 12px; }
+        .prob-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px; }
+        .prob-track { height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }
+        .prob-fill { height: 100%; border-radius: 4px; }
+
+    </style>
+</head>
+<body>
+
+<!-- SCREEN 1: HOME -->
+<div id="screen-home" class="screen active">
+    <div class="hero">
+        <div class="hero-emoji">💍</div>
+        <div class="hero-title">Паша & Катя</div>
+        <div class="hero-sub">19 июня 2026 · Помолвлены</div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📍 Точка отсчёта</div>
+        <div class="card-text">
+            Паша в Мюнхене строит бизнес и школу.<br>
+            Катя в Чикаго с Green Card с марта 2024.<br>
+            Следующая встреча — декабрь 2026.<br>
+            Это точка главного решения.
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">🛣️ Три пути</div>
+        <div class="pill-scroll">
+            <div class="pill active" onclick="switchTab('screen-usa')">🇺🇸 Паспорт США</div>
+            <div class="pill" onclick="switchTab('screen-munich')">🏠 Мюнхен</div>
+            <div class="pill" onclick="switchTab('screen-risks')">✈️ Два города</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">⏳ До декабря 2026</div>
+        <div class="countdown-num" id="countdownDays">165 дней</div>
+        <div class="countdown-sub">до точки решения</div>
+        <div class="progress-track">
+            <div class="progress-fill" id="countdownProgress" style="width: 30%"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📋 Наш статус</div>
+        <div class="status-cols">
+            <div class="status-col">
+                <div class="status-name">👨 Паша</div>
+                <div class="status-list">
+                    Мюнхен<br>FC Music<br>Fretster<br>EdTech
+                </div>
+            </div>
+            <div class="status-col">
+                <div class="status-name">👩 Катя</div>
+                <div class="status-list">
+                    Чикаго<br>Green Card<br>DaVinci Resolve
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SCREEN 2: USA -->
+<div id="screen-usa" class="screen">
+    <div class="header">
+        <h1 class="header-title">Путь к паспорту США</h1>
+        <div class="header-sub">INA §316(a)</div>
+    </div>
+
+    <div class="scenario-card scenario-opt" onclick="toggleScenario(this)">
+        <div class="prob-ring prob-opt">25%</div>
+        <div class="scenario-title">Апрель 2029</div>
+        <div class="scenario-sub">Оптимистичный сценарий</div>
+        <div class="scenario-details">
+            <div class="step-item">
+                <div class="step-dot" style="background:var(--green)"></div>
+                <div class="step-content">
+                    <div class="step-date">Дек 2028</div>
+                    <div class="step-desc">Подача N-400. Быстрая обработка.</div>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-dot" style="background:var(--green)"></div>
+                <div class="step-content">
+                    <div class="step-date">Мар 2029</div>
+                    <div class="step-desc">Интервью без RFE.</div>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-dot" style="background:var(--green)"></div>
+                <div class="step-content">
+                    <div class="step-date">Апр 2029</div>
+                    <div class="step-desc">Присяга и получение паспорта.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="scenario-card scenario-real" onclick="toggleScenario(this)">
+        <div class="prob-ring prob-real">45%</div>
+        <div class="scenario-title">Ноябрь 2029</div>
+        <div class="scenario-sub">Реалистичный (Медиана Чикаго)</div>
+        <div class="scenario-details">
+            <div class="step-item">
+                <div class="step-dot" style="background:var(--amber)"></div>
+                <div class="step-content">
+                    <div class="step-date">Дек 2028</div>
+                    <div class="step-desc">Подача N-400.</div>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-dot" style="background:var(--amber)"></div>
+                <div class="step-content">
+                    <div class="step-date">Сен 2029</div>
+                    <div class="step-desc">Ожидание 7.5–10 мес. Интервью.</div>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-dot" style="background:var(--amber)"></div>
+                <div class="step-content">
+                    <div class="step-date">Ноя 2029</div>
+                    <div class="step-desc">Присяга.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="scenario-card scenario-pess" onclick="toggleScenario(this)">
+        <div class="prob-ring prob-pess">30%</div>
+        <div class="scenario-title">Февраль 2033</div>
+        <div class="scenario-sub">Пессимистичный (CARRP)</div>
+        <div class="scenario-details">
+            <div class="step-item">
+                <div class="step-dot" style="background:var(--red)"></div>
+                <div class="step-content">
+                    <div class="step-date">2029-2031</div>
+                    <div class="step-desc">Заморозка дела по CARRP (РФ).</div>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-dot" style="background:var(--red)"></div>
+                <div class="step-content">
+                    <div class="step-date">2032</div>
+                    <div class="step-desc">Иск в федеральный суд (Mandamus).</div>
+                </div>
+            </div>
+            <div class="step-item">
+                <div class="step-dot" style="background:var(--red)"></div>
+                <div class="step-content">
+                    <div class="step-date">Фев 2033</div>
+                    <div class="step-desc">Вынужденное одобрение.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card warning-card">
+        <div class="card-title">⚠️ CARRP-риск</div>
+        <div class="card-text">Российское гражданство — возможный триггер расширенной проверки ФБР. +6–12 месяцев задержки.</div>
+    </div>
+    
+    <div class="card warning-card">
+        <div class="card-title">⚠️ Лимит: 913 дней</div>
+        <div class="card-text">Каждый день в Германии = −1 день физического присутствия в США. Ограничение для LPR.</div>
+    </div>
+
+    <div class="card warning-card">
+        <div class="card-title">⚠️ Налоговая ловушка</div>
+        <div class="card-text">После паспорта: декларация IRS пожизненно. FBAR если счёт в DE > $10 000.</div>
+    </div>
+</div>
+
+<!-- SCREEN 3: MUNICH -->
+<div id="screen-munich" class="screen">
+    <div class="header">
+        <h1 class="header-title">Мюнхенский путь</h1>
+        <div class="header-sub">Familienzusammenführung</div>
+    </div>
+
+    <div class="m-timeline" id="munichTimeline">
+        <div class="m-step done">
+            <div class="m-circle">①</div>
+            <div class="m-content">
+                <div class="m-head"><div class="m-title">💍 Июнь 2026</div><div class="badge badge-done">✓ Выполнено</div></div>
+                <div class="m-desc">Помолвка в Мюнхене. Паша сделал предложение. Первый шаг сделан.</div>
+            </div>
+        </div>
+        <div class="m-step soon">
+            <div class="m-circle">②</div>
+            <div class="m-content">
+                <div class="m-head"><div class="m-title">✈️ Декабрь 2026</div><div class="badge badge-soon">Скоро</div></div>
+                <div class="m-desc">Катя прилетает. 1–2 месяца вместе. Совместный быт. Точка главного решения.</div>
+            </div>
+        </div>
+        <div class="m-step">
+            <div class="m-circle">③</div>
+            <div class="m-content">
+                <div class="m-head"><div class="m-title">💒 Начало 2027</div><div class="badge badge-muted">Впереди</div></div>
+                <div class="m-desc">Роспись. Регистрация брака в Мюнхене. Запуск §28 AufenthG.</div>
+            </div>
+        </div>
+        <div class="m-step">
+            <div class="m-circle">④</div>
+            <div class="m-content">
+                <div class="m-head"><div class="m-title">🏡 Середина 2027</div><div class="badge badge-muted">Впереди</div></div>
+                <div class="m-desc">Паша нашёл квартиру. Въезд и получение ВНЖ.</div>
+            </div>
+        </div>
+        <div class="m-step">
+            <div class="m-circle">⑤</div>
+            <div class="m-content">
+                <div class="m-head"><div class="m-title">🔑 2028–2029</div><div class="badge badge-muted">Впереди</div></div>
+                <div class="m-desc">ПМЖ Германии. 3 года законного проживания. Постоянный статус. Бессрочно.</div>
+            </div>
+        </div>
+        <div class="m-step final">
+            <div class="m-circle">⑥</div>
+            <div class="m-content">
+                <div class="m-head"><div class="m-title">🇩🇪 2030–2033</div><div class="badge badge-final">Финал 🎯</div></div>
+                <div class="m-desc">Немецкий паспорт. Топ-3 мира. 190+ стран без визы. Включая въезд в США.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">Мюнхен vs Американский путь</div>
+        <div class="table-wrap">
+            <table>
+                <tr><th>Параметр</th><th class="hl">🏠 Мюнхен</th><th>🇺🇸 США</th></tr>
+                <tr><td>Воссоединение</td><td class="hl">1–2 года</td><td>5–9 лет</td></tr>
+                <tr><td>Жизнь вместе</td><td class="hl">Сразу</td><td>< 90 дн/год</td></tr>
+                <tr><td>Дети</td><td class="hl">Возможны</td><td>Сложно</td></tr>
+                <tr><td>Паспорт рейтинг</td><td class="hl">Топ-3 🟢</td><td>Топ-7 🟢</td></tr>
+                <tr><td>Стресс</td><td class="hl">Низкий 🟢</td><td>Критичный 🔴</td></tr>
+                <tr><td>Цена разлуки</td><td class="hl">€0</td><td>€30K+</td></tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- SCREEN 4: CAREER -->
+<div id="screen-career" class="screen">
+    <div class="header">
+        <h1 class="header-title">Карьера Кати</h1>
+        <div class="header-sub">DaVinci Resolve · Фриланс</div>
+    </div>
+
+    <div class="card progress-section">
+        <div class="card-title">Путь к фрилансу</div>
+        <div class="prog-bar">
+            <div class="prog-line"></div>
+            <div class="prog-points">
+                <div class="prog-point active">
+                    <div class="prog-dot"></div>
+                    <span>Начало</span>
+                </div>
+                <div class="prog-point">
+                    <div class="prog-dot"></div>
+                    <span>Заказы</span>
+                </div>
+                <div class="prog-point">
+                    <div class="prog-dot"></div>
+                    <span>€3K/мес</span>
+                </div>
+                <div class="prog-point">
+                    <div class="prog-dot"></div>
+                    <span>Мюнхен</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📚 DaVinci Resolve</div>
+        <div class="card-text" style="margin-bottom: 12px;">Профессиональный стандарт индустрии. Бесплатная версия полнофункциональна.</div>
+        <div style="font-size: 12px; margin-bottom: 6px; color: var(--muted)">Уровень: Начинающий</div>
+        <div class="progress-track"><div class="progress-fill" style="width: 10%"></div></div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">📊 Рынок видеомонтажа</div>
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-val">€25–40/ч</div>
+                <div class="metric-sub">Старт</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-val">€40–80/ч</div>
+                <div class="metric-sub">1–2 года</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">🎯 Цели</div>
+        <div class="goal-timeline">
+            <div class="goal-item"><div class="goal-icon">🗓️</div>Сейчас (июнь 2026) → изучение DaVinci</div>
+            <div class="goal-item"><div class="goal-icon">🗓️</div>Дек 2026 → переезд в Мюнхен</div>
+            <div class="goal-item"><div class="goal-icon">🗓️</div>Лето 2027 → первые клиенты</div>
+            <div class="goal-item"><div class="goal-icon">🗓️</div>2028 → €2–4K/мес стабильно</div>
+            <div class="goal-item"><div class="goal-icon">🗓️</div>2029+ → независимая карьера</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title">💸 Калькулятор цены разлуки</div>
+        <div class="calc-row">
+            <label>Лет ожидания: <span id="mCalcYearsVal">3</span></label>
+            <input type="range" id="mCalcYears" min="1" max="10" value="3">
+        </div>
+        <div class="calc-result">
+            <div class="calc-out">Авиабилеты: <strong id="mCalcCost">€9 900</strong></div>
+            <div class="calc-out">Дней врозь: <strong id="mCalcDays">855</strong></div>
+            <div class="calc-out">Пропущено: <strong id="mCalcMissed">2.3 лет жизни</strong></div>
+            <div class="calc-vs">vs 🏠 Мюнхен: €0, 0 дней врозь</div>
+        </div>
+    </div>
+</div>
+
+<!-- SCREEN 5: RISKS -->
+<div id="screen-risks" class="screen">
+    <div class="header">
+        <h1 class="header-title">Полная картина рисков</h1>
+    </div>
+
+    <div class="accordion" onclick="toggleAcc(this)">
+        <div class="acc-header">
+            <span>💔 Риски отношений <span style="color:var(--red);font-size:12px;margin-left:8px;">[🔴 ВЫСОКИЙ]</span></span>
+            <span class="acc-icon">▾</span>
+        </div>
+        <div class="acc-content">
+            <div class="acc-inner">
+                <ul>
+                    <li>40% LDR пар расстаются за 4–5 лет</li>
+                    <li>< 90 дней вместе в год при разлуке</li>
+                    <li>Хронический стресс = угроза паре</li>
+                    <li>Решение: мюнхенский сценарий</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion" onclick="toggleAcc(this)">
+        <div class="acc-header">
+            <span>💰 Налоговая ловушка США <span style="color:var(--amber);font-size:12px;margin-left:8px;">[🟡 СРЕДНИЙ]</span></span>
+            <span class="acc-icon">▾</span>
+        </div>
+        <div class="acc-content">
+            <div class="acc-inner">
+                <ul>
+                    <li>Пожизненная декларация IRS после паспорта</li>
+                    <li>FBAR: немецкий счёт > $10K = отчёт</li>
+                    <li>Немецкие банки отказывают гражданам США</li>
+                    <li>Выход: €2 350 + процедура отказа</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion" onclick="toggleAcc(this)">
+        <div class="acc-header">
+            <span>⚖️ Что будет без Паши <span style="color:var(--amber);font-size:12px;margin-left:8px;">[🟡 СРЕДНИЙ]</span></span>
+            <span class="acc-icon">▾</span>
+        </div>
+        <div class="acc-content">
+            <div class="acc-inner">
+                <ul>
+                    <li>🔴 Брак < 3 лет → ВНЖ аннулируется</li>
+                    <li>🟡 Брак 3+ лет → 1 год по §31 AufenthG</li>
+                    <li>🟢 ПМЖ/гражданство → полная защита</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion" onclick="toggleAcc(this)">
+        <div class="acc-header">
+            <span>🚨 CARRP и денатурализация <span style="color:var(--red);font-size:12px;margin-left:8px;">[🔴 ВЫСОКИЙ]</span></span>
+            <span class="acc-icon">▾</span>
+        </div>
+        <div class="acc-content">
+            <div class="acc-inner">
+                <ul>
+                    <li>Гражданство РФ — триггер проверки ФБР</li>
+                    <li>+6–12 месяцев задержки</li>
+                    <li>2025: USCIS — 100–200 дел/мес на денатурализацию</li>
+                    <li>НО: нельзя потерять случайно (Afroyim v. Rusk)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" style="margin-top: 24px;">
+        <div class="card-title">📊 Сценарии жизни в Мюнхене</div>
+        
+        <div class="prob-bar-wrap">
+            <div class="prob-label"><span>🟢 Оптимистичный</span><span>40%</span></div>
+            <div class="prob-track"><div class="prob-fill" style="width: 40%; background: var(--green)"></div></div>
+        </div>
+        <div class="prob-bar-wrap">
+            <div class="prob-label"><span>🟡 Реалистичный</span><span>45%</span></div>
+            <div class="prob-track"><div class="prob-fill" style="width: 45%; background: var(--amber)"></div></div>
+        </div>
+        <div class="prob-bar-wrap">
+            <div class="prob-label"><span>🔴 Пессимистичный</span><span>15%</span></div>
+            <div class="prob-track"><div class="prob-fill" style="width: 15%; background: var(--red)"></div></div>
+        </div>
+    </div>
+</div>
+
+<!-- BOTTOM TAB BAR -->
+<div class="tab-bar">
+    <div class="tab active" onclick="switchTab('screen-home', this)">
+        <div class="tab-indicator"></div>
+        <div class="tab-icon">💍</div>
+        <div>Мы</div>
+    </div>
+    <div class="tab" onclick="switchTab('screen-usa', this)">
+        <div class="tab-indicator" style="display:none;"></div>
+        <div class="tab-icon">🇺🇸</div>
+        <div>США</div>
+    </div>
+    <div class="tab" onclick="switchTab('screen-munich', this)">
+        <div class="tab-indicator" style="display:none;"></div>
+        <div class="tab-icon">🏠</div>
+        <div>Мюнхен</div>
+    </div>
+    <div class="tab" onclick="switchTab('screen-career', this)">
+        <div class="tab-indicator" style="display:none;"></div>
+        <div class="tab-icon">🎬</div>
+        <div>Карьера</div>
+    </div>
+    <div class="tab" onclick="switchTab('screen-risks', this)">
+        <div class="tab-indicator" style="display:none;"></div>
+        <div class="tab-icon">⚠️</div>
+        <div>Риски</div>
+    </div>
+</div>
+
+<script>
+    // Tab Switching Logic
+    function switchTab(screenId, tabElement) {
+        // Update tabs
+        if(tabElement) {
+            document.querySelectorAll('.tab').forEach(t => {
+                t.classList.remove('active');
+                t.querySelector('.tab-indicator').style.display = 'none';
+            });
+            tabElement.classList.add('active');
+            tabElement.querySelector('.tab-indicator').style.display = 'block';
+        } else {
+            // Find tab by screenId if triggered from button
+            const tabs = document.querySelectorAll('.tab');
+            const targetIndex = ['screen-home', 'screen-usa', 'screen-munich', 'screen-risks'].indexOf(screenId); // roughly
+            // Just updating screens for pill clicks
+        }
+
+        // Update screens
+        const activeScreen = document.querySelector('.screen.active');
+        if (activeScreen && activeScreen.id !== screenId) {
+            activeScreen.classList.remove('active');
+        }
+        
+        const newScreen = document.getElementById(screenId);
+        if(newScreen) {
+            newScreen.classList.add('active');
+            newScreen.scrollTop = 0;
+            
+            // Re-trigger animations if Munich
+            if (screenId === 'screen-munich') {
+                initMunichTimeline();
+            }
+        }
+    }
+
+    // Countdown Logic
+    function updateCountdown() {
+        const target = new Date('2026-12-01T00:00:00');
+        const start = new Date('2026-06-19T00:00:00'); // Baseline for progress
+        const now = new Date();
+        
+        let days = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+        if (days < 0) days = 0;
+        
+        document.getElementById('countdownDays').innerText = days + " дней";
+        
+        const total = target - start;
+        const passed = now - start;
+        let pct = Math.min(100, Math.max(0, (passed / total) * 100));
+        document.getElementById('countdownProgress').style.width = pct + '%';
+    }
+    updateCountdown();
+    setInterval(updateCountdown, 86400000); // Daily
+
+    // Accordion Logic
+    function toggleAcc(el) {
+        el.classList.toggle('open');
+    }
+
+    // Scenario Toggle
+    function toggleScenario(el) {
+        document.querySelectorAll('.scenario-card').forEach(c => {
+            if (c !== el) c.classList.remove('expanded');
+        });
+        el.classList.toggle('expanded');
+    }
+
+    // Cost Calculator Logic
+    const slYears = document.getElementById('mCalcYears');
+    function updateCalc() {
+        const y = parseInt(slYears.value);
+        document.getElementById('mCalcYearsVal').innerText = y;
+        
+        const cost = y * 3 * 1100; // 3 flights * 1100 euro
+        const together = y * 80;   // 80 days/year together
+        const apart = y * 365 - together;
+        const missed = (apart / 365).toFixed(1);
+        
+        document.getElementById('mCalcCost').innerText = '€' + cost.toLocaleString('ru-RU');
+        document.getElementById('mCalcDays').innerText = apart;
+        document.getElementById('mCalcMissed').innerText = missed + ' лет жизни';
+    }
+    slYears.addEventListener('input', updateCalc);
+    updateCalc();
+
+    // Intersection Observer for Munich Timeline
+    function initMunichTimeline() {
+        const steps = document.querySelectorAll('.m-step');
+        steps.forEach(s => s.classList.remove('visible'));
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach((entry, index) => {
+                if (entry.isIntersecting) {
+                    setTimeout(() => {
+                        entry.target.classList.add('visible');
+                    }, index * 100);
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.2 });
+
+        setTimeout(() => {
+            steps.forEach(step => observer.observe(step));
+        }, 100);
+    }
+    
+    // Init first screen animations
+    setTimeout(initMunichTimeline, 500);
+
+</script>
+</body>
+</html>

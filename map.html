@@ -256,8 +256,8 @@
         position: absolute;
         bottom: 76px;
         left: 24px;
-        width: 170px;
-        height: 115px;
+        width: 200px;
+        height: 140px;
         background: var(--panel-bg);
         border: 1px solid var(--border-color);
         border-radius: 12px;
@@ -939,7 +939,7 @@
     const state = {
         nodes: [],
         edges: [],
-        transform: { x: window.innerWidth/2, y: window.innerHeight/2, scale: 1 },
+        transform: { x: window.innerWidth/2, y: window.innerHeight/2 + 80, scale: 0.42 },
         isDragging: false,
         dragStart: { x: 0, y: 0 },
         hoveredNode: null,
@@ -961,8 +961,8 @@
         canvas.height = window.innerHeight * window.devicePixelRatio;
         ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
         
-        minimapCanvas.width = 170 * window.devicePixelRatio;
-        minimapCanvas.height = 115 * window.devicePixelRatio;
+        minimapCanvas.width = 200 * window.devicePixelRatio;
+        minimapCanvas.height = 140 * window.devicePixelRatio;
         mctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     }
     window.addEventListener('resize', resize);
@@ -973,9 +973,9 @@
         state.nodes.push({
             ...nd,
             x: 0, y: 0, // starts at root
-            targetX: layout[nd.id].x,
-            targetY: layout[nd.id].y,
-            radius: 12,
+            targetX: Math.round(layout[nd.id].x * 1.8),
+            targetY: Math.round(layout[nd.id].y * 1.8),
+            radius: Math.round(12 * 1.2),
             color: colors[nd.type] || colors.neutral,
             matchOp: 1, 
             isSearchMatch: false,
@@ -1349,7 +1349,7 @@
         minimapTransform.cy = (minY + maxY)/2;
         
         mctx.save();
-        mctx.translate(170/2, 115/2);
+        mctx.translate(200/2, 140/2);
         mctx.scale(mScale, mScale);
         mctx.translate(-minimapTransform.cx, -minimapTransform.cy);
 
@@ -1451,8 +1451,8 @@
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
         
-        const mx = (x - 170/2) / minimapTransform.mScale + minimapTransform.cx;
-        const my = (y - 115/2) / minimapTransform.mScale + minimapTransform.cy;
+        const mx = (x - 200/2) / minimapTransform.mScale + minimapTransform.cx;
+        const my = (y - 140/2) / minimapTransform.mScale + minimapTransform.cy;
         
         const targetX = window.innerWidth / 2 - mx * state.transform.scale;
         const targetY = window.innerHeight / 2 - my * state.transform.scale;
